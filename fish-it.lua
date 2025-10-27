@@ -1,16 +1,15 @@
 -- =============================================================
--- 🐟 AUTO FAST FISHING UI EDITION by BroGPT
+-- 🐟 AUTO FAST FISHING UI EDITION (Reel Delay Editable)
 -- =============================================================
 
---// KONFIGURASI DEFAULT
 local ToolSlot = 1
 local ChargeTime = 1.0
 local CycleDelay = 0.5
+local ReelDelay = 5 -- ⬅ delay sebelum "FishingCompleted"
 local CastingX = -1.233184814453125
 local CastingY = 0.04706447494934768
 local AutoFishingEnabled = false
 
---// SERVICE & REMOTES
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Packages = ReplicatedStorage:WaitForChild("Packages")
 local NetService = Packages:WaitForChild("_Index"):WaitForChild("sleitnick_net@0.2.0"):WaitForChild("net")
@@ -48,7 +47,7 @@ local function CastAndReelFast()
         return RequestMinigameFunc:InvokeServer(unpack(args))
     end)
     if success and (result == true or type(result) == "table") then
-        task.wait(5)
+        task.wait(ReelDelay) -- ⬅ sekarang bisa diubah dari UI
         FishingCompletedEvent:FireServer()
         print("✅ Ikan ditarik instan!")
         return true
@@ -79,39 +78,28 @@ local function AutoFishLoop()
 end
 
 -- =============================================================
--- 🧩 UI BUATAN BROGPT
+-- 🧩 UI
 -- =============================================================
-
--- Buat ScreenGui
-local ScreenGui = Instance.new("ScreenGui")
+local ScreenGui = Instance.new("ScreenGui", game.CoreGui)
 ScreenGui.Name = "FastFishingUI"
-ScreenGui.Parent = game.CoreGui
 
--- Frame utama
-local Frame = Instance.new("Frame")
-Frame.Size = UDim2.new(0, 240, 0, 160)
+local Frame = Instance.new("Frame", ScreenGui)
+Frame.Size = UDim2.new(0, 260, 0, 200)
 Frame.Position = UDim2.new(0.05, 0, 0.4, 0)
 Frame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
 Frame.BorderSizePixel = 0
 Frame.Active = true
 Frame.Draggable = true
-Frame.Parent = ScreenGui
+Instance.new("UICorner", Frame).CornerRadius = UDim.new(0, 12)
 
--- Ujung halus
-local UICorner = Instance.new("UICorner", Frame)
-UICorner.CornerRadius = UDim.new(0, 12)
-
--- Judul
-local Title = Instance.new("TextLabel")
+local Title = Instance.new("TextLabel", Frame)
 Title.Text = "🐟 FAST FISHING"
 Title.Size = UDim2.new(1, 0, 0, 30)
 Title.BackgroundTransparency = 1
 Title.Font = Enum.Font.GothamBold
 Title.TextSize = 20
 Title.TextColor3 = Color3.fromRGB(255, 255, 255)
-Title.Parent = Frame
 
--- RGB efek
 task.spawn(function()
 	while true do
 		for hue = 0, 255 do
@@ -121,33 +109,43 @@ task.spawn(function()
 	end
 end)
 
--- Tombol Toggle
-local Toggle = Instance.new("TextButton")
+-- Tombol Start/Stop
+local Toggle = Instance.new("TextButton", Frame)
 Toggle.Text = "▶ START"
 Toggle.Size = UDim2.new(0.9, 0, 0, 35)
-Toggle.Position = UDim2.new(0.05, 0, 0.3, 0)
+Toggle.Position = UDim2.new(0.05, 0, 0.25, 0)
 Toggle.BackgroundColor3 = Color3.fromRGB(60, 170, 80)
 Toggle.TextColor3 = Color3.fromRGB(255, 255, 255)
 Toggle.Font = Enum.Font.GothamBold
 Toggle.TextSize = 18
-Toggle.Parent = Frame
 Instance.new("UICorner", Toggle)
 
--- Input Delay
-local DelayBox = Instance.new("TextBox")
+-- Input Cycle Delay
+local DelayBox = Instance.new("TextBox", Frame)
 DelayBox.PlaceholderText = "Cycle Delay (detik)"
 DelayBox.Text = tostring(CycleDelay)
 DelayBox.Size = UDim2.new(0.9, 0, 0, 35)
-DelayBox.Position = UDim2.new(0.05, 0, 0.6, 0)
+DelayBox.Position = UDim2.new(0.05, 0, 0.55, 0)
 DelayBox.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
 DelayBox.TextColor3 = Color3.fromRGB(255, 255, 255)
 DelayBox.Font = Enum.Font.Gotham
 DelayBox.TextSize = 16
-DelayBox.Parent = Frame
 Instance.new("UICorner", DelayBox)
 
+-- Input Reel Delay (yang tadi lu maksud)
+local ReelBox = Instance.new("TextBox", Frame)
+ReelBox.PlaceholderText = "Reel Delay (detik)"
+ReelBox.Text = tostring(ReelDelay)
+ReelBox.Size = UDim2.new(0.9, 0, 0, 35)
+ReelBox.Position = UDim2.new(0.05, 0, 0.75, 0)
+ReelBox.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+ReelBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+ReelBox.Font = Enum.Font.Gotham
+ReelBox.TextSize = 16
+Instance.new("UICorner", ReelBox)
+
 -- =============================================================
--- 🔹 LOGIKA UI INTERAKSI
+-- 🔹 LOGIKA UI
 -- =============================================================
 Toggle.MouseButton1Click:Connect(function()
     AutoFishingEnabled = not AutoFishingEnabled
@@ -156,6 +154,7 @@ Toggle.MouseButton1Click:Connect(function()
         Toggle.Text = "⏹ STOP"
         Toggle.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
         CycleDelay = tonumber(DelayBox.Text) or CycleDelay
+        ReelDelay = tonumber(ReelBox.Text) or ReelDelay
         task.spawn(AutoFishLoop)
     else
         Toggle.Text = "▶ START"
@@ -163,7 +162,4 @@ Toggle.MouseButton1Click:Connect(function()
     end
 end)
 
--- =============================================================
--- 📜 INFO TAMBAHAN
--- =============================================================
-print("✅ Fast Fishing UI Loaded. Klik tombol '▶ START' untuk memulai.")
+print("✅ Fast Fishing UI Loaded (dengan Reel Delay editable).")
