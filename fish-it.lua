@@ -1,165 +1,181 @@
--- =============================================================
--- 🐟 AUTO FAST FISHING UI EDITION (Reel Delay Editable)
--- =============================================================
+-- 🎣 AUTO FISH FAST (UI + ICON + RGB)
+-- Versi Final by GPT-5
 
+-- ========== KONFIGURASI DASAR ==========
 local ToolSlot = 1
-local ChargeTime = 1.0
-local CycleDelay = 0.5
-local ReelDelay = 5 -- ⬅ delay sebelum "FishingCompleted"
-local CastingX = -1.233184814453125
-local CastingY = 0.04706447494934768
-local AutoFishingEnabled = false
+local BiteDelay = 1.0
+local CastingX, CastingY = -1.233184814453125, 0.04706447494934768
 
+-- ========== SERVICE ==========
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local Packages = ReplicatedStorage:WaitForChild("Packages")
-local NetService = Packages:WaitForChild("_Index"):WaitForChild("sleitnick_net@0.2.0"):WaitForChild("net")
+local NetService = ReplicatedStorage:FindFirstChild("Packages", true)
+    and ReplicatedStorage.Packages:FindFirstChild("_Index", true)
+    and ReplicatedStorage.Packages._Index:FindFirstChild("sleitnick_net@0.2.0", true)
+    and ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"]:FindFirstChild("net", true)
+
+if not NetService then
+    warn("❌ NetService tidak ditemukan.")
+    return
+end
 
 local EquipToolEvent = NetService:WaitForChild("RE/EquipToolFromHotbar")
 local ChargeRodFunc = NetService:WaitForChild("RF/ChargeFishingRod")
 local RequestMinigameFunc = NetService:WaitForChild("RF/RequestFishingMinigameStarted")
 local FishingCompletedEvent = NetService:WaitForChild("RE/FishingCompleted")
+local CancelInputsFunc = NetService:WaitForChild("RF/CancelFishingInputs")
 
--- =============================================================
--- 🔹 FUNGSI LOGIKA
--- =============================================================
-local function EquipFishingRod(slot)
+-- ========== CORE FUNCTION ==========
+local function EquipRod(slot)
     EquipToolEvent:FireServer(slot)
-    task.wait(0.5)
+    task.wait(0.01)
 end
 
 local function ChargeRod()
-    local success = pcall(function()
+    local ok = pcall(function()
         return ChargeRodFunc:InvokeServer()
     end)
-    if success then
-        task.wait(ChargeTime)
-        return true
-    else
-        warn("❌ Charge gagal.")
-        return false
-    end
+    return ok
 end
 
-local function CastAndReelFast()
+local function CastAndReel()
     local currentTime = tick()
     local args = {CastingX, CastingY, currentTime}
     local success, result = pcall(function()
         return RequestMinigameFunc:InvokeServer(unpack(args))
     end)
     if success and (result == true or type(result) == "table") then
-        task.wait(ReelDelay) -- ⬅ sekarang bisa diubah dari UI
+        task.wait(BiteDelay)
         FishingCompletedEvent:FireServer()
-        print("✅ Ikan ditarik instan!")
+        task.wait(0.005)
+        pcall(function() CancelInputsFunc:InvokeServer() end)
+        EquipRod(ToolSlot)
         return true
-    else
-        warn("❌ Casting gagal.")
-        return false
     end
 end
 
--- =============================================================
--- 🔹 AUTO LOOP
--- =============================================================
-local function AutoFishLoop()
-    print("🎣 Fast Fishing dimulai...")
-    EquipFishingRod(ToolSlot)
-    task.wait(1)
+-- ========== UI SETUP ==========
+local player = game.Players.LocalPlayer
+local gui = Instance.new("ScreenGui", gethui and gethui() or game.CoreGui)
+gui.Name = "AutoFishUI"
+gui.ResetOnSpawn = false
 
-    while AutoFishingEnabled do
-        local charged = ChargeRod()
-        if not charged then
-            task.wait(CycleDelay * 2)
-        else
-            CastAndReelFast()
-        end
-        task.wait(CycleDelay)
-    end
-    print("⛔ Auto Fishing dihentikan.")
-end
+-- 🟥 Toggle Icon
+local icon = Instance.new("ImageButton")
+icon.Size = UDim2.new(0, 60, 0, 60)
+icon.Position = UDim2.new(1, -70, 1, -80)
+icon.Image = "rbxassetid://7072718362" -- Logo Roblox merah
+icon.BackgroundTransparency = 1
+icon.ZIndex = 10
+icon.Parent = gui
 
--- =============================================================
--- 🧩 UI
--- =============================================================
-local ScreenGui = Instance.new("ScreenGui", game.CoreGui)
-ScreenGui.Name = "FastFishingUI"
+-- 🪟 Frame UI
+local frame = Instance.new("Frame")
+frame.Size = UDim2.new(0, 260, 0, 150)
+frame.Position = UDim2.new(0.75, 0, 0.35, 0)
+frame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+frame.BackgroundTransparency = 0.15
+frame.Visible = false
+frame.Active = true
+frame.Draggable = true
+frame.Parent = gui
+Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 10)
 
-local Frame = Instance.new("Frame", ScreenGui)
-Frame.Size = UDim2.new(0, 260, 0, 200)
-Frame.Position = UDim2.new(0.05, 0, 0.4, 0)
-Frame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-Frame.BorderSizePixel = 0
-Frame.Active = true
-Frame.Draggable = true
-Instance.new("UICorner", Frame).CornerRadius = UDim.new(0, 12)
-
-local Title = Instance.new("TextLabel", Frame)
-Title.Text = "🐟 FAST FISHING"
-Title.Size = UDim2.new(1, 0, 0, 30)
-Title.BackgroundTransparency = 1
-Title.Font = Enum.Font.GothamBold
-Title.TextSize = 20
-Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+-- 🧠 Title (RGB)
+local title = Instance.new("TextLabel", frame)
+title.Size = UDim2.new(1, 0, 0, 35)
+title.Text = "🎣 Auto Fish Fast"
+title.Font = Enum.Font.GothamBold
+title.TextSize = 16
+title.BackgroundTransparency = 1
+title.TextColor3 = Color3.new(1, 1, 1)
 
 task.spawn(function()
 	while true do
-		for hue = 0, 255 do
-			Title.TextColor3 = Color3.fromHSV(hue / 255, 1, 1)
-			task.wait(0.02)
-		end
+		local t = tick() * 2
+		title.TextColor3 = Color3.fromRGB(
+			math.floor((math.sin(t) * 127) + 128),
+			math.floor((math.sin(t + 2) * 127) + 128),
+			math.floor((math.sin(t + 4) * 127) + 128)
+		)
+		task.wait(0.05)
 	end
 end)
 
--- Tombol Start/Stop
-local Toggle = Instance.new("TextButton", Frame)
-Toggle.Text = "▶ START"
-Toggle.Size = UDim2.new(0.9, 0, 0, 35)
-Toggle.Position = UDim2.new(0.05, 0, 0.25, 0)
-Toggle.BackgroundColor3 = Color3.fromRGB(60, 170, 80)
-Toggle.TextColor3 = Color3.fromRGB(255, 255, 255)
-Toggle.Font = Enum.Font.GothamBold
-Toggle.TextSize = 18
-Instance.new("UICorner", Toggle)
+-- 🧾 Status
+local status = Instance.new("TextLabel", frame)
+status.Size = UDim2.new(1, -20, 0, 25)
+status.Position = UDim2.new(0, 10, 0, 40)
+status.BackgroundTransparency = 1
+status.Font = Enum.Font.Gotham
+status.TextSize = 13
+status.TextColor3 = Color3.fromRGB(200, 200, 200)
+status.Text = "Status: Idle"
 
--- Input Cycle Delay
-local DelayBox = Instance.new("TextBox", Frame)
-DelayBox.PlaceholderText = "Cycle Delay (detik)"
-DelayBox.Text = tostring(CycleDelay)
-DelayBox.Size = UDim2.new(0.9, 0, 0, 35)
-DelayBox.Position = UDim2.new(0.05, 0, 0.55, 0)
-DelayBox.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
-DelayBox.TextColor3 = Color3.fromRGB(255, 255, 255)
-DelayBox.Font = Enum.Font.Gotham
-DelayBox.TextSize = 16
-Instance.new("UICorner", DelayBox)
+-- 🎚️ Input Delay
+local delayBox = Instance.new("TextBox", frame)
+delayBox.Size = UDim2.new(0, 230, 0, 30)
+delayBox.Position = UDim2.new(0.5, -115, 0, 70)
+delayBox.PlaceholderText = "Bite Delay (ex: 1.0)"
+delayBox.Text = tostring(BiteDelay)
+delayBox.Font = Enum.Font.Gotham
+delayBox.TextSize = 13
+delayBox.TextColor3 = Color3.new(1, 1, 1)
+delayBox.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+delayBox.BorderSizePixel = 0
+Instance.new("UICorner", delayBox).CornerRadius = UDim.new(0, 8)
 
--- Input Reel Delay (yang tadi lu maksud)
-local ReelBox = Instance.new("TextBox", Frame)
-ReelBox.PlaceholderText = "Reel Delay (detik)"
-ReelBox.Text = tostring(ReelDelay)
-ReelBox.Size = UDim2.new(0.9, 0, 0, 35)
-ReelBox.Position = UDim2.new(0.05, 0, 0.75, 0)
-ReelBox.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
-ReelBox.TextColor3 = Color3.fromRGB(255, 255, 255)
-ReelBox.Font = Enum.Font.Gotham
-ReelBox.TextSize = 16
-Instance.new("UICorner", ReelBox)
+-- ▶️ Button Start/Stop
+local toggleBtn = Instance.new("TextButton", frame)
+toggleBtn.Size = UDim2.new(0, 230, 0, 40)
+toggleBtn.Position = UDim2.new(0.5, -115, 1, -50)
+toggleBtn.Text = "▶️ Start Auto Fish"
+toggleBtn.Font = Enum.Font.GothamBold
+toggleBtn.TextSize = 14
+toggleBtn.BackgroundColor3 = Color3.fromRGB(40, 160, 80)
+toggleBtn.TextColor3 = Color3.new(1, 1, 1)
+toggleBtn.BorderSizePixel = 0
+Instance.new("UICorner", toggleBtn).CornerRadius = UDim.new(0, 10)
 
--- =============================================================
--- 🔹 LOGIKA UI
--- =============================================================
-Toggle.MouseButton1Click:Connect(function()
-    AutoFishingEnabled = not AutoFishingEnabled
-
-    if AutoFishingEnabled then
-        Toggle.Text = "⏹ STOP"
-        Toggle.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
-        CycleDelay = tonumber(DelayBox.Text) or CycleDelay
-        ReelDelay = tonumber(ReelBox.Text) or ReelDelay
-        task.spawn(AutoFishLoop)
-    else
-        Toggle.Text = "▶ START"
-        Toggle.BackgroundColor3 = Color3.fromRGB(60, 170, 80)
-    end
+-- ========== RGB ANIM TITLE ==========
+task.spawn(function()
+	while true do
+		local t = tick() * 2
+		local r = math.sin(t) * 0.5 + 0.5
+		local g = math.sin(t + 2) * 0.5 + 0.5
+		local b = math.sin(t + 4) * 0.5 + 0.5
+		title.TextColor3 = Color3.new(r, g, b)
+		task.wait(0.05)
+	end
 end)
 
-print("✅ Fast Fishing UI Loaded (dengan Reel Delay editable).")
+-- ========== TOGGLE HANDLER ==========
+icon.MouseButton1Click:Connect(function()
+	frame.Visible = not frame.Visible
+end)
+
+local running = false
+
+toggleBtn.MouseButton1Click:Connect(function()
+	if running then
+		running = false
+		status.Text = "Status: Idle"
+		toggleBtn.Text = "▶️ Start Auto Fish"
+		toggleBtn.BackgroundColor3 = Color3.fromRGB(40, 160, 80)
+	else
+		running = true
+		status.Text = "Status: Running..."
+		toggleBtn.Text = "⏸️ Stop Auto Fish"
+		toggleBtn.BackgroundColor3 = Color3.fromRGB(200, 60, 60)
+		task.spawn(function()
+			while running do
+				local ok = ChargeRod()
+				if ok then
+					BiteDelay = tonumber(delayBox.Text) or 1.0
+					CastAndReel()
+				else
+					task.wait(0.05)
+				end
+			end
+		end)
+	end
+end)
