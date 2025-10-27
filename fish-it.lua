@@ -5,23 +5,24 @@ local ToolSlot = 1         -- Slot Hotbar tempat pancing berada.
 local ChargeTime = 1.0     -- Durasi simulasi 'charge' pancing.
 local CycleDelay = 0.5     -- Jeda minimal antar siklus memancing.
 
--- Variabel status dan delay yang akan diatur oleh GUI
 local isRunning = false
-local BiteDelay = 3.0 -- Nilai default yang sudah terbukti berhasil
-local AutoFishThread = nil -- Untuk menyimpan thread (proses) memancing
+local BiteDelay = 3.0 
+local AutoFishThread = nil 
 
--- Nilai Casting (x, y)
 local CastingX = -1.233184814453125
 local CastingY = 0.04706447494934768
 
 -- =============================================================
 -- SERVICE & REMOTE FUNCTIONS/EVENTS
 -- =============================================================
+-- Menggunakan FindFirstChild rekursif untuk mencari net service lebih fleksibel
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local Packages = ReplicatedStorage:WaitForChild("Packages")
-local NetService = Packages:WaitForChild("_Index"):WaitForChild("sleitnick_net@0.2.0"):WaitForChild("net")
+local NetService = ReplicatedStorage:FindFirstChild("Packages", true):FindFirstChild("_Index", true):FindFirstChild("sleitnick_net@0.2.0", true):FindFirstChild("net", true)
 
--- Pastikan semua RemoteFunctions/Events tersedia
+if not NetService then
+    error("Error: NetService tidak ditemukan. Script tidak dapat berjalan.")
+end
+
 local EquipToolEvent = NetService:WaitForChild("RE/EquipToolFromHotbar")
 local ChargeRodFunc = NetService:WaitForChild("RF/ChargeFishingRod")
 local RequestMinigameFunc = NetService:WaitForChild("RF/RequestFishingMinigameStarted") 
@@ -36,7 +37,7 @@ local function wait(time)
 end
 
 -- =============================================================
--- LOGIKA AUTO-FISHING (DIJALANKAN DALAM THREAD)
+-- LOGIKA AUTO-FISHING 
 -- =============================================================
 
 local function EquipFishingRod(slot)
@@ -50,15 +51,15 @@ local function ChargeRod()
     end)
     
     if success then
-        wait(ChargeTime)
+        wait(ChargeTime) 
         return true
     else
-        warn("Charge Pancing GAGAL.")
         return false
     end
 end
 
 local function CastAndReelFast()
+    if not isRunning then return end
     local currentTime = tick()
     
     local args = {
@@ -73,12 +74,11 @@ local function CastAndReelFast()
 
     if success and (result == true or type(result) == "table") then
         
-        -- Menggunakan variabel global BiteDelay yang diatur oleh GUI
         wait(BiteDelay) 
+        if not isRunning then return end 
         FishingCompletedEvent:FireServer()
         return true
     else
-        warn("Casting GAGAL. Hasil: " .. tostring(result))
         return false
     end
 end
@@ -98,13 +98,31 @@ local function AutoFishLoop()
 
         wait(CycleDelay) 
     end
+    AutoFishThread = nil
 end
 
 -- =============================================================
--- KODE GUI
+-- KODE GUI (DIOPTIMALKAN UNTUK EXECUTOR)
 -- =============================================================
 
-local PlayerGui = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui")
+-- Akses LocalPlayer dan PlayerGui secara langsung
+local Player = game:GetService("Players").LocalPlayer
+local PlayerGui = Player and Player:FindFirstChild("PlayerGui")
+
+if not PlayerGui then
+    -- Jika PlayerGui tidak ditemukan (kasus umum di Executor), buat ScreenGui di CoreGui
+    -- Beberapa Executor memerlukan penempatan di CoreGui atau di ReplicatedStorage
+    -- Kita coba taruh di PlayerGui, jika gagal, kita coba di tempat lain.
+    -- Namun, penempatan di PlayerGui adalah standar terbaik.
+    if Player then
+        PlayerGui = Instance.new("PlayerGui", Player)
+    else
+        -- Jika LocalPlayer pun tidak ditemukan (Executor sangat terbatas), script berhenti.
+        warn("LocalPlayer atau PlayerGui tidak ditemukan. GUI gagal dimuat.")
+        return 
+    end
+end
+
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "AutoFishGUI"
 ScreenGui.Parent = PlayerGui
@@ -115,7 +133,7 @@ Frame.Position = UDim2.new(0.5, -100, 0.5, -75)
 Frame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
 Frame.BorderColor3 = Color3.fromRGB(20, 20, 20)
 Frame.Active = true
-Frame.Draggable = true -- Membuat GUI bisa dipindah
+Frame.Draggable = true 
 Frame.Parent = ScreenGui
 
 local Title = Instance.new("TextLabel")
@@ -132,7 +150,7 @@ ToggleButton.Size = UDim2.new(0.9, 0, 0, 30)
 ToggleButton.Position = UDim2.new(0.05, 0, 0, 40)
 ToggleButton.Text = "STATUS: OFF"
 ToggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-ToggleButton.BackgroundColor3 = Color3.fromRGB(150, 40, 40) -- Merah (OFF)
+ToggleButton.BackgroundColor3 = Color3.fromRGB(150, 40, 40)
 ToggleButton.Font = Enum.Font.SourceSansBold
 ToggleButton.Parent = Frame
 
@@ -148,7 +166,7 @@ DelayLabel.Parent = Frame
 local DelayInput = Instance.new("TextBox")
 DelayInput.Name = "DelayInput"
 DelayInput.Size = UDim2.new(0.45, 0, 0, 25)
-DelayInput.Position = UDim2.new(0.5, 0, 0, 105)
+DelayInput.Position = UDim2.new(0.5, 0, 0, 80)
 DelayInput.Text = tostring(BiteDelay)
 DelayInput.PlaceholderText = "3.0"
 DelayInput.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -158,9 +176,9 @@ DelayInput.TextXAlignment = Enum.TextXAlignment.Center
 DelayInput.Parent = Frame
 
 local InfoLabel = Instance.new("TextLabel")
-InfoLabel.Size = UDim2.new(0.9, 0, 0, 20)
-InfoLabel.Position = UDim2.new(0.05, 0, 0, 130)
-InfoLabel.Text = "Tingkatkan Delay jika ikan gagal ditarik."
+InfoLabel.Size = UDim2.new(0.9, 0, 0, 30)
+InfoLabel.Position = UDim2.new(0.05, 0, 0, 115) 
+InfoLabel.Text = "INFO: Tingkatkan Delay jika ikan gagal ditarik."
 InfoLabel.TextColor3 = Color3.fromRGB(180, 180, 180)
 InfoLabel.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
 InfoLabel.Font = Enum.Font.SourceSans
@@ -171,40 +189,31 @@ InfoLabel.Parent = Frame
 -- KODE PENGHUBUNG (HANDLERS)
 -- =============================================================
 
--- Handler untuk Tombol ON/OFF
 ToggleButton.MouseButton1Click:Connect(function()
     if isRunning then
         -- MATIKAN SCRIPT
         isRunning = false
-        if AutoFishThread then
-            -- Hentikan thread memancing yang sedang berjalan
-            coroutine.yield(AutoFishThread) 
-            AutoFishThread = nil
+        if AutoFishThread and task.cancel then 
+            task.cancel(AutoFishThread)
         end
+        AutoFishThread = nil
         ToggleButton.Text = "STATUS: OFF"
-        ToggleButton.BackgroundColor3 = Color3.fromRGB(150, 40, 40) -- Merah
-        print("Auto-Fishing DIMATIKAN.")
+        ToggleButton.BackgroundColor3 = Color3.fromRGB(150, 40, 40) 
     else
         -- HIDUPKAN SCRIPT
         isRunning = true
         ToggleButton.Text = "STATUS: ON"
-        ToggleButton.BackgroundColor3 = Color3.fromRGB(40, 150, 40) -- Hijau
-        print("Auto-Fishing DIHIDUPKAN.")
+        ToggleButton.BackgroundColor3 = Color3.fromRGB(40, 150, 40) 
         
-        -- Jalankan loop memancing dalam thread baru
         AutoFishThread = task.spawn(AutoFishLoop)
     end
 end)
 
--- Handler untuk Input Delay
-DelayInput.FocusLost:Connect(function(enterPressed)
+DelayInput.FocusLost:Connect(function()
     local newDelay = tonumber(DelayInput.Text)
     if newDelay and newDelay >= 0.1 then
         BiteDelay = newDelay
-        print("Bite Delay diatur ke: " .. BiteDelay .. " detik.")
     else
-        warn("Input Delay tidak valid. Menggunakan delay saat ini: " .. BiteDelay)
-        -- Reset textbox ke nilai valid terakhir
         DelayInput.Text = tostring(BiteDelay) 
     end
 end)
