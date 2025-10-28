@@ -1,8 +1,8 @@
 -- =============================================================
--- PROPER TIMING FISHING
+-- DEBUG FISHING SCRIPT
 -- =============================================================
 local ToolSlot = 1         
-local BiteDelay = 1.2
+local BiteDelay = 1.3
 
 local CastingX = -1.233184814453125
 local CastingY = 0.04706447494934768
@@ -20,37 +20,48 @@ local FishingCompletedEvent = NetService:WaitForChild("RE/FishingCompleted")
 local CancelInputsFunc = NetService:WaitForChild("RF/CancelFishingInputs") 
 
 -- =============================================================
--- FIXED TIMING FISHING
+-- DEBUG FUNCTION
 -- =============================================================
 
-local function ProperFishingCycle()
-    -- 1. Charge + Cast
-    pcall(ChargeRodFunc.InvokeServer, ChargeRodFunc)
-    pcall(RequestMinigameFunc.InvokeServer, RequestMinigameFunc, CastingX, CastingY, tick())
+local function DebugFishing()
+    print("=== DEBUG START ===")
     
-    -- 2. Tunggu tanda (!)
+    -- 1. Equip tool
+    print("1. Equipping tool...")
+    EquipToolEvent:FireServer(ToolSlot)
+    task.wait(0.5)
+    
+    -- 2. Charge rod
+    print("2. Charging rod...")
+    local chargeSuccess, chargeResult = pcall(ChargeRodFunc.InvokeServer, ChargeRodFunc)
+    print("Charge result:", chargeSuccess, chargeResult)
+    
+    -- 3. Cast
+    print("3. Casting...")
+    local castSuccess, castResult = pcall(RequestMinigameFunc.InvokeServer, RequestMinigameFunc, CastingX, CastingY, tick())
+    print("Cast result:", castSuccess, castResult)
+    
+    -- 4. Wait for bite
+    print("4. Waiting for bite...")
     task.wait(BiteDelay)
     
-    -- 3. TARIK IKAN DULU (pastikan ini selesai)
-    FishingCompletedEvent:FireServer()
+    -- 5. Try to complete fishing
+    print("5. Completing fishing...")
+    local completeSuccess, completeError = pcall(FishingCompletedEvent.FireServer, FishingCompletedEvent)
+    print("Complete result:", completeSuccess, completeError)
     
-    -- 4. Tunggu sebentar biar ikan benar-benar tertarik
-    task.wait(0.1)  -- Delay kecil untuk memastikan fishing completed diproses
+    -- 6. Check if we need parameters
+    if not completeSuccess then
+        print("Trying with parameters...")
+        local success2, error2 = pcall(FishingCompletedEvent.FireServer, FishingCompletedEvent, true)
+        print("With true:", success2, error2)
+        
+        local success3, error3 = pcall(FishingCompletedEvent.FireServer, FishingCompletedEvent, false)  
+        print("With false:", success3, error3)
+    end
     
-    -- 5. Baru reset dan lempar lagi
-    pcall(CancelInputsFunc.InvokeServer, CancelInputsFunc)
-    EquipToolEvent:FireServer(0)
-    task.wait(0.05)
-    EquipToolEvent:FireServer(ToolSlot)
-    
-    return true
+    print("=== DEBUG END ===")
 end
 
--- Start
-task.wait(1)
-EquipToolEvent:FireServer(ToolSlot)
-task.wait(0.5)
-
-while true do
-    ProperFishingCycle()
-end
+-- Run debug
+DebugFishing()
