@@ -2,7 +2,7 @@
 -- ULTRA FAST FISH (BiteDelay Tetap 1.0)
 -- =============================================================
 local ToolSlot = 1         
-local BiteDelay = 1.5      -- Tetap 1.0 sesuai requirement
+local BiteDelay = 1.2      -- Tetap 1.0 sesuai requirement
 local ChargeTime = 0.0     
 
 -- Nilai Casting (x, y)
