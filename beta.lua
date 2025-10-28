@@ -1,9 +1,11 @@
 -- =============================================================
--- ULTRA FAST FISH WITH TIMESTAMP OPTIMIZATION
+-- KONFIGURASI FAST FISH (STRATEGI CANCEL INPUTS)
 -- =============================================================
-local ToolSlot = 1         
-local BiteDelay = 1.3      
-local ChargeTime = 0.0     
+local ToolSlot = 1         -- Slot Hotbar tempat pancing berada (1-9).
+local BiteDelay = 1.3      -- NILAI MINIMAL YANG BERHASIL (1.0 detik).
+
+-- ChargeTime tidak digunakan lagi di wait()
+local ChargeTime = 0.0 
 
 -- Nilai Casting (x, y)
 local CastingX = -1.233184814453125
@@ -26,134 +28,96 @@ local RequestMinigameFunc = NetService:WaitForChild("RF/RequestFishingMinigameSt
 local FishingCompletedEvent = NetService:WaitForChild("RE/FishingCompleted")
 local CancelInputsFunc = NetService:WaitForChild("RF/CancelFishingInputs") 
 
--- Cache untuk performa
-local tick = tick
-local pcall = pcall
-
--- =============================================================
--- TIMESTAMP MANIPULATION
--- =============================================================
-local timestampOffset = 0
-local lastServerTime = tick()
-
-local function GetOptimizedTimestamp()
-    -- Coba predict server time dengan offset
-    return tick() + timestampOffset
-end
-
-local function CalibrateTimestamp()
-    -- Simulasi kalibrasi timestamp (hati-hati dengan ini)
-    local clientTime = tick()
-    -- Di realitanya butuh sync dengan server, tapi kita simulate aja
-    timestampOffset = -0.5 -- Sedikit lebih cepat dari client time
+local function wait(time)
+    if time then
+        task.wait(time)
+    else
+        task.wait()
+    end
 end
 
 -- =============================================================
--- LOGIKA ULTRA FAST FISHING DENGAN TIMESTAMP OPTIMIZED
+-- LOGIKA AUTO-FISHING
 -- =============================================================
 
 local function EquipFishingRod(slot)
     EquipToolEvent:FireServer(slot)
+    wait(0.1) 
 end
 
-local function UltraCombinedChargeAndCast()
-    local currentTime = GetOptimizedTimestamp()
+local function ChargeRod()
+    local success, result = pcall(function()
+        return ChargeRodFunc:InvokeServer()
+    end)
     
-    -- Charge dan Cast dalam satu sequence tanpa delay
-    local charge_success = pcall(ChargeRodFunc.InvokeServer, ChargeRodFunc)
-    
-    if charge_success then
-        -- Pakai optimized timestamp
-        local cast_success, cast_result = pcall(RequestMinigameFunc.InvokeServer, RequestMinigameFunc, CastingX, CastingY, currentTime)
-        
-        -- Jika gagal, coba recalibrate timestamp
-        if not cast_success then
-            CalibrateTimestamp()
-        end
-        
-        return cast_success and (cast_result == true or type(cast_result) == "table")
+    if success then
+        return true
+    else
+        wait(0.01) -- Jeda sangat minimal agar CPU tidak stress
+        return false
     end
-    
-    return false
 end
 
-local function UltraFastCastAndReel()
-    if UltraCombinedChargeAndCast() then
-        -- Tunggu BiteDelay yang tetap 1.3
-        local waitStart = tick()
+local function CastAndReelFast()
+    local currentTime = tick()
+    
+    local args = {
+        [1] = CastingX,
+        [2] = CastingY,
+        [3] = currentTime
+    }
+    
+    local success, result = pcall(function()
+        return RequestMinigameFunc:InvokeServer(unpack(args))
+    end)
+
+    if success and (result == true or type(result) == "table") then
         
-        -- OPTIMIZED WAIT: Kita bisa reduce BiteDelay sedikit
-        local actualWait = BiteDelay - 0.05  -- Sedikit lebih cepat
-        while tick() - waitStart < actualWait do
-            task.wait(0.01)  -- Smaller intervals
-        end
+        -- 1. Tunggu Minimal Menang Minigame
+        wait(BiteDelay) 
         
-        -- Sequence cepat untuk completion
+        -- 2. Tarik Pancing (Klaim Kemenangan)
         FishingCompletedEvent:FireServer()
         
-        -- Reset sequence dengan delay super minimal
-        task.wait(0.001)
+        -- 🔥 MODIFIKASI KRITIS: TAMBAH JEDA MICRO 🔥
+        -- Beri server 0.1 detik untuk memproses kemenangan sebelum mereset cooldown.
+        wait(0.1) 
         
-        -- Reset tools
-        pcall(CancelInputsFunc.InvokeServer, CancelInputsFunc)
-        EquipToolEvent:FireServer(0)
+        -- 3. Reset Cooldown/Status
+        local cancel_success = pcall(function()
+            CancelInputsFunc:InvokeServer() 
+        end)
+        if cancel_success then
+             print("Cooldown reset dipicu via CancelFishingInputs.")
+        end
+        
+        -- 4. Re-equip (strategi lama)
+        EquipFishingRod(ToolSlot) 
         
         return true
+    else
+        return false
     end
-    return false
 end
 
 -- =============================================================
--- EKSEKUSI UTAMA DENGAN TIMESTAMP OPTIMIZATION
+-- EKSEKUSI UTAMA (MEMAKSA PENGULANGAN)
 -- =============================================================
 
-local function UltraFastAutoFish()
-    print("--- ULTRA FAST FISHING WITH TIMESTAMP OPTIMIZATION ---")
-    print("BiteDelay:", BiteDelay)
+local function AutoFishFast()
+    print("--- FAST FISHING SCRIPT DIMULAI (BYPASS COOLDOWN) ---")
 
-    -- Kalibrasi timestamp awal
-    CalibrateTimestamp()
-    
     EquipFishingRod(ToolSlot)
-    task.wait(0.3)
+    wait(1)
 
-    local failCount = 0
-    local successCount = 0
-    local cycleCount = 0
-    
-    while true do
-        cycleCount = cycleCount + 1
+    while true do 
         
-        -- Rekalibrasi setiap 20 cycle
-        if cycleCount % 20 == 0 then
-            CalibrateTimestamp()
-        end
+        local isCharged = ChargeRod()
         
-        local success = UltraFastCastAndReel()
-        
-        if success then
-            successCount = successCount + 1
-            failCount = 0
-        else
-            failCount = failCount + 1
-            successCount = 0
-            
-            if failCount >= 2 then
-                task.wait(0.01)
-            else
-                task.wait(0.002)
-            end
-        end
-        
-        -- Reset equipment setiap 10 success
-        if successCount >= 10 then
-            EquipToolEvent:FireServer(0)
-            task.wait(0.05)
-            EquipFishingRod(ToolSlot)
-            successCount = 0
+        if isCharged then
+            CastAndReelFast()
         end
     end
 end
 
--- Start dengan spawn
-task.spawn(UltraFastAutoFish)
+AutoFishFast()
