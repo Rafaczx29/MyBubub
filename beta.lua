@@ -2,7 +2,7 @@
 -- PROPER TIMING FISHING
 -- =============================================================
 local ToolSlot = 1         
-local BiteDelay = 1.0
+local BiteDelay = 1.2
 
 local CastingX = -1.233184814453125
 local CastingY = 0.04706447494934768
