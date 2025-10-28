@@ -83,7 +83,7 @@ local function UltraFastCastAndReel()
         local waitStart = tick()
         
         -- OPTIMIZED WAIT: Kita bisa reduce BiteDelay sedikit
-        local actualWait = BiteDelay - 0.5  -- Sedikit lebih cepat
+        local actualWait = BiteDelay - 0.1  -- Sedikit lebih cepat
         while tick() - waitStart < actualWait do
             task.wait(0.01)  -- Smaller intervals
         end
