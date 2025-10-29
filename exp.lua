@@ -14,6 +14,29 @@ local autoSellRunning = false  -- Status ON/OFF AutoSell
 local autoSellThread = nil     -- Thread untuk AutoSell
 local SellInterval = 5         -- Default 5 Menit
 
+-- =============================================================
+-- DATA LOKASI TELEPORT
+-- =============================================================
+local TeleportData = {
+    ["Weather Machine"] = Vector3.new(-1471, -3, 1929),
+    ["Esoteric Depths"] = Vector3.new(3157, -1303, 1439),
+    ["Tropical Grove"] = Vector3.new(-2038, 3, 3650),
+    ["Stingray Shores"] = Vector3.new(-32, 4, 2773),
+    ["Kohana Volcano"] = Vector3.new(-519, 24, 189),
+    ["Coral Reefs"] = Vector3.new(-3095, 1, 2177),
+    ["Crater Island"] = Vector3.new(968, 1, 4854),
+    ["Kohana"] = Vector3.new(-658, 3, 719),
+    ["Winter Fest"] = Vector3.new(1611, 4, 3280),
+    ["Isoteric Island"] = Vector3.new(1987, 4, 1400),
+    ["Treasure Hall"] = Vector3.new(-3600, -267, -1558),
+    ["Lost Shore"] = Vector3.new(-3663, 38, -989 ),
+    ["Sishypus Statue"] = Vector3.new(-3792, -135, -986)
+}
+local TeleportLocations = {}
+for name, _ in pairs(TeleportData) do table.insert(TeleportLocations, name) end
+table.sort(TeleportLocations)
+local CurrentTeleportLocation = TeleportLocations[1] or "Weather Machine" -- Pastikan ada nilai default
+
 -- ========== SERVICE & REMOTE SETUP ==========
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local NetService = ReplicatedStorage:FindFirstChild("Packages", true)
@@ -25,13 +48,17 @@ if not NetService then
 warn("❌ NetService tidak ditemukan. Logika memancing akan nonaktif.")
 end
 
--- Ambil Remote. Jika NetService nil, ini akan menjadi nil (Aman).
 local EquipToolEvent = NetService and NetService:WaitForChild("RE/EquipToolFromHotbar")
 local ChargeRodFunc = NetService and NetService:WaitForChild("RF/ChargeFishingRod")
 local RequestMinigameFunc = NetService and NetService:WaitForChild("RF/RequestFishingMinigameStarted")
 local FishingCompletedEvent = NetService and NetService:WaitForChild("RE/FishingCompleted")
 local CancelInputsFunc = NetService and NetService:WaitForChild("RF/CancelFishingInputs")
 local SellAllItemsFunc = NetService and NetService:WaitForChild("RF/SellAllItems") 
+
+-- UTILITY
+local function wait(time)
+    if time then task.wait(time) end
+end
 
 -- ========== CORE GLOBAL FUNCTIONS ==========
 
@@ -122,7 +149,7 @@ end
 
 
 -- =============================================================
--- UI RAYFIELD & INTEGRASI TOGGLE
+-- UI RAYFIELD & INTEGRASI
 -- =============================================================
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
@@ -161,14 +188,12 @@ TabFish:CreateToggle({
  end
 
  if toggled then
- -- HIDUPKAN SCRIPT
  running = true
  currentAutoFishThread = task.spawn(_G.AutoFishLoop)
  Rayfield:Notify({ Title = "Instant Fishing", Content = "Memancing otomatis diaktifkan! Delay: " .. string.format("%.2f", BiteDelay) .. "s", Duration = 3 })
  else
- -- MATIKAN SCRIPT
  running = false
- if currentAutoFishThread and task.cancel then task.cancel(currentAutoFishThread) end
+ if currentAutoFishThread and task.cancel then task.cancel(currentAutoFishThread) then currentAutoFishThread = nil end
  Rayfield:Notify({ Title = "Instant Fishing", Content = "Memancing otomatis dinonaktifkan.", Duration = 3 })
  end
  end,
@@ -200,12 +225,10 @@ TabSell:CreateToggle({
         end
         
         if toggled then
-            -- HIDUPKAN
             autoSellRunning = true
             autoSellThread = task.spawn(_G.AutoSellLoop)
             Rayfield:Notify({ Title = "Auto Sell", Content = "Penjualan otomatis diaktifkan! Setiap " .. SellInterval .. " menit.", Duration = 3 })
         else
-            -- MATIKAN
             autoSellRunning = false
             if autoSellThread and task.cancel then task.cancel(autoSellThread) end
             Rayfield:Notify({ Title = "Auto Sell", Content = "Penjualan otomatis dinonaktifkan.", Duration = 3 })
@@ -213,16 +236,46 @@ TabSell:CreateToggle({
     end
 })
 
-local Tab = Window:CreateTab("Teleport Menu", 4483362458) -- Title, Image
+local TabTeleport = Window:CreateTab("Teleport Menu", 4483362458) 
 
-local Dropdown = Tab:CreateDropdown({
-   Name = "Bokep",
-   Options = {"Ah 1","Ahhh 2"},
-   CurrentOption = {"Option 1"},
-   MultipleOptions = false,
-   Flag = "Dropdown1", -- A flag is the identifier for the configuration file, make sure every element has a different flag if you're using configuration saving to ensure no overlaps
-   Callback = function(Options)
-   -- The function that takes place when the selected option is changed
-   -- The variable (Options) is a table of strings for the current selected options
-   end,
+-- 🗺️ DROPDOWN PILIH LOKASI (FIXED SYNTAX)
+TabTeleport:CreateDropdown({
+    Name = "Pilih Lokasi Teleport",
+    Options = TeleportLocations,
+    CurrentOption = {TeleportLocations[1]}, -- FIX: Menggunakan tabel untuk syntax Rayfield
+    Callback = function(choices)
+        CurrentTeleportLocation = choices[1] -- Rayfield mengembalikan tabel, kita ambil yang pertama
+    end,
+})
+
+-- ✈️ TOMBOL TELEPORT
+TabTeleport:CreateButton({
+    Name = "Teleport Ke Lokasi",
+    Callback = function()
+        local destinationVector = TeleportData[CurrentTeleportLocation]
+        
+        if not destinationVector then
+            Rayfield:Notify({ Title = "Teleport Gagal", Content = "Koordinat tujuan tidak ditemukan.", Duration = 3 })
+            return
+        end
+
+        local character = game.Players.LocalPlayer.Character
+        local HRP = character and character:FindFirstChild("HumanoidRootPart")
+
+        if HRP then
+            local targetCFrame = CFrame.new(destinationVector) * CFrame.new(0, 3, 0) -- Offset +3 agar tidak stuck
+            
+            local success = pcall(function()
+                HRP.CFrame = targetCFrame
+            end)
+
+            if success then
+                Rayfield:Notify({ Title = "Teleport Sukses!", Content = "Berpindah ke " .. CurrentTeleportLocation, Duration = 3 })
+            else
+                Rayfield:Notify({ Title = "Teleport Gagal", Content = "Gagal memindahkan karakter.", Duration = 3 })
+            end
+        else
+            Rayfield:Notify({ Title = "Teleport Gagal", Content = "Karakter belum dimuat (HRP tidak ada).", Duration = 3 })
+        end
+    end,
 })
