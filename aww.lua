@@ -301,3 +301,113 @@ Tab:CreateButton({
         end
     end,
 })
+
+local ShopTab = Window:CreateTab("Shop", 4483362458)
+
+local BoatsSection = ShopTab:CreateSection("Buy Boats")
+
+local boats = {
+    {name = "Small Boat", id = 1},
+    {name = "Kayak", id = 2},
+    {name = "Jetski", id = 3},
+    {name = "Highfield Boat", id = 4},
+    {name = "Speed Boat", id = 5},
+    {name = "Fishing Boat", id = 6},
+    {name = "Mini Yacht", id = 7}
+}
+
+for _, boat in ipairs(boats) do
+    ShopTab:CreateButton({
+        Name = "Buy " .. boat.name,
+        Callback = function()
+            local RFPurchaseBoat = ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net["RF/PurchaseBoat"]
+            RFPurchaseBoat:InvokeServer(boat.id)
+            Rayfield:Notify({
+                Title = "Shop",
+                Content = "Purchased " .. boat.name .. "!",
+                Duration = 3,
+                Image = 4483362458,
+            })
+        end,
+    })
+end
+
+local GearsSection = ShopTab:CreateSection("Buy Gears")
+
+ShopTab:CreateButton({
+    Name = "Buy Fishing Radar",
+    Callback = function()
+        local RFPurchaseGear = ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net["RF/PurchaseGear"]
+        RFPurchaseGear:InvokeServer(81)
+        Rayfield:Notify({
+            Title = "Shop",
+            Content = "Purchased Fishing Radar!",
+            Duration = 3,
+            Image = 4483362458,
+        })
+    end,
+})
+
+ShopTab:CreateButton({
+    Name = "Buy Diving Gear",
+    Callback = function()
+        local RFPurchaseGear = ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net["RF/PurchaseGear"]
+        RFPurchaseGear:InvokeServer(105)
+        Rayfield:Notify({
+            Title = "Shop",
+            Content = "Purchased Diving Gear!",
+            Duration = 3,
+            Image = 4483362458,
+        })
+    end,
+})
+
+local WeatherSection = ShopTab:CreateSection("Buy Weather")
+
+local weathers = {"Cloudy", "Snow", "Storm", "Radiant", "SharkHunt", "Wind"}
+
+for _, weather in ipairs(weathers) do
+    ShopTab:CreateButton({
+        Name = "Buy " .. weather,
+        Callback = function()
+            local RFPurchaseWeatherEvent = ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net["RF/PurchaseWeatherEvent"]
+            RFPurchaseWeatherEvent:InvokeServer(weather)
+            Rayfield:Notify({
+                Title = "Shop",
+                Content = "Purchased " .. weather .. " weather!",
+                Duration = 3,
+                Image = 4483362458,
+            })
+        end,
+    })
+end
+
+local RodsSection = ShopTab:CreateSection("Buy Fishing Rods")
+
+local rods = {
+    {name = "Luck Rod", id = 79},
+    {name = "Carbon Rod", id = 76},
+    {name = "Grass Rod", id = 85},
+    {name = "Damascus Rod", id = 77},
+    {name = "Ice Rod", id = 78},
+    {name = "Lucky Rod", id = 4},
+    {name = "Midnight Rod", id = 80},
+    {name = "Steampunk Rod", id = 6},
+    {name = "Chrome Rod", id = 7}
+}
+
+for _, rod in ipairs(rods) do
+    ShopTab:CreateButton({
+        Name = "Buy " .. rod.name,
+        Callback = function()
+            local RFPurchaseFishingRod = ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net["RF/PurchaseFishingRod"]
+            RFPurchaseFishingRod:InvokeServer(rod.id)
+            Rayfield:Notify({
+                Title = "Shop",
+                Content = "Purchased " .. rod.name .. "!",
+                Duration = 3,
+                Image = 4483362458,
+            })
+        end,
+    })
+end
