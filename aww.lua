@@ -23,8 +23,11 @@ local SellInterval = 5         -- Default 5 Menit
 -- LOGIKA TELEPORT MURNI (Untuk Diuji Coba)
 -- =============================================================
 
--- 🔥 1. DATA LOKASI (HARUS DIDEFINISIKAN SEBELUM GUI)
+-- Data Teleportasi (Hanya Posisi X, Y, Z)
+-- Format: [Nama Lokasi] = Vector3.new(X, Y, Z)
+
 local TeleportData = {
+    -- === LOKASI LAMA (Sudah Vector3) ===
     ["Weather Machine"] = Vector3.new(-1471, -3, 1929),
     ["Esoteric Depths"] = Vector3.new(3157, -1303, 1439),
     ["Tropical Grove"] = Vector3.new(-2038, 3, 3650),
@@ -36,8 +39,17 @@ local TeleportData = {
     ["Winter Fest"] = Vector3.new(1611, 4, 3280),
     ["Isoteric Island"] = Vector3.new(1987, 4, 1400),
     ["Treasure Hall"] = Vector3.new(-3600, -267, -1558),
-    ["Lost Shore"] = Vector3.new(-3663, 38, -989 ),
-    ["Sishypus Statue"] = Vector3.new(-3792, -135, -986)
+    ["Lost Shore"] = Vector3.new(-3663, 38, -989),
+    ["Sishypus Statue"] = Vector3.new(-3792, -135, -986),
+    
+    -- === LOKASI BARU (Diambil 3 Angka Pertama, diubah ke Vector3) ===
+    ["Secret Temple"] = Vector3.new(1476.06653, -21.8499374, -629.400513),
+    ["Admin Spot"] = Vector3.new(-1940, -447.498962, 7422),
+    ["Jungle Outside"] = Vector3.new(1488, 7.62499952, -392),
+    ["Mount Hallow"] = Vector3.new(2122.95679, 80.3949356, 3264.53174),
+    ["Hallow Bay"] = Vector3.new(1728.32202, 7.86756945, 3046.81689),
+    ["Enchant 1"] = Vector3.new(3234.39453, -1302.85486, 1401.36157),
+    ["Enchant 2"] = Vector3.new(1480, 127.624985, -593)
 }
 
 -- Konversi data menjadi list string untuk Dropdown
@@ -218,7 +230,7 @@ end
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 local Window = Rayfield:CreateWindow({
-Name = "Fish It Instant | v1.2",
+Name = "Fish It Instant | Beta",
 LoadingTitle = "Fish It Instant Script",
 LoadingSubtitle = "by Rafaczx",
 ConfigurationSaving = { Enabled = true, FolderName = "FishItInstant", FileName = "FishItConfig" },
