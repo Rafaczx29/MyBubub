@@ -3,9 +3,14 @@
 -- =============================================================
 
 -- 🔥 VARIABEL PENTING (DIKONTROL OLEH RAYFIELD SLIDER/TOGGLE) 🔥
+-- Mengganti variabel global lama dengan konfigurasi fast fish yang baru
 local ToolSlot = 1
-local BiteDelay = 1.0 
-local CastingX, CastingY = -1.233184814453125, 0.04706447494934768
+local BiteDelay = 1.1 -- Default baru: 1.1 detik
+local CastingX = -0.5718746185302734
+local CastingY = 1.0
+
+local MINIMAL_WAIT_SUCCESS = 0.01
+local FAIL_COOLDOWN = 0.01
 
 local running = false          -- Status ON/OFF AutoFish
 local currentAutoFishThread = nil -- Thread untuk AutoFish
@@ -93,65 +98,91 @@ local FishingCompletedEvent = NetService and NetService:WaitForChild("RE/Fishing
 local CancelInputsFunc = NetService and NetService:WaitForChild("RF/CancelFishingInputs")
 local SellAllItemsFunc = NetService and NetService:WaitForChild("RF/SellAllItems") 
 
--- ========== CORE GLOBAL FUNCTIONS ==========
+local tick = tick
+local pcall = pcall
+local function wait(time) if time then task.wait(time) end end
+
+
+-- ========== CORE GLOBAL FUNCTIONS (DIPERBARUI) ==========
 
 function _G.EquipRod(slot)
- if EquipToolEvent then EquipToolEvent:FireServer(slot) end
-task.wait(0.01)
+ -- Tidak lagi dibutuhkan karena logika baru meng-handle equip
 end
 
 function _G.ChargeRod()
- if not ChargeRodFunc then return false end
-local ok = pcall(function()
- return ChargeRodFunc:InvokeServer()
-end)
-return ok
+ -- Tidak lagi dibutuhkan karena logika baru meng-handle charge
 end
 
 function _G.CastAndReel()
- if not RequestMinigameFunc or not FishingCompletedEvent then return false end
-
-local currentTime = tick()
-local args = {CastingX, CastingY, currentTime}
-local cast_success = false
-
-local charge_success = _G.ChargeRod()
-
-if charge_success then
- task.wait(0.01) 
- 
- local success, result = pcall(function()
-return RequestMinigameFunc:InvokeServer(unpack(args))
- end)
-
- if success and (result == true or type(result) == "table") then
-cast_success = true
- end
+ -- Tidak lagi dibutuhkan karena logika baru meng-handle cast & reel
 end
 
-if cast_success then
- task.wait(BiteDelay) 
- FishingCompletedEvent:FireServer()
- 
- task.wait(0.005) 
- if CancelInputsFunc then pcall(function() CancelInputsFunc:InvokeServer() end) end
- _G.EquipRod(ToolSlot)
- return true
-end
-return false
+local function ResetAndCast()
+    if not EquipToolEvent or not ChargeRodFunc or not RequestMinigameFunc or not FishingCompletedEvent or not CancelInputsFunc then
+        warn("❌ Remote services penting untuk memancing tidak ditemukan.")
+        return false
+    end
+    
+    -- 1. EQUIP PANCING
+    EquipToolEvent:FireServer(ToolSlot)
+    wait(0.005) 
+
+    -- 2. CANCEL/RESET STATUS
+    pcall(CancelInputsFunc.InvokeServer, CancelInputsFunc)
+    wait(0.005) 
+
+    -- 3. CHARGE DAN CAST INSTAN
+    local currentTime = tick()
+    local cast_success = false
+
+    -- A. CHARGE
+    local charge_success = pcall(function()
+        return ChargeRodFunc:InvokeServer(currentTime)
+    end)
+    
+    if charge_success then
+        -- B. CAST PANCING
+        local args_cast = { [1] = CastingX, [2] = CastingY }
+        local request_success, request_result = pcall(function()
+            return RequestMinigameFunc:InvokeServer(unpack(args_cast))
+        end)
+
+        if request_success and (request_result == true or type(request_result) == "table") then
+            cast_success = true
+        end
+    end
+    
+    if cast_success then
+        
+        -- 4. BITE DELAY
+        wait(BiteDelay) 
+        
+        -- 5. KLAIM KEMENANGAN
+        FishingCompletedEvent:FireServer()
+        
+        -- 6. Cleanup (Siap untuk siklus berikutnya)
+        wait(MINIMAL_WAIT_SUCCESS) 
+        
+        return true
+    end
+    
+    return false
 end
 
 function _G.AutoFishLoop()
- _G.EquipRod(ToolSlot)
- task.wait(1) 
+    print("--- AUTO FISHING STARTED (INSTAN CHARGE+CAST) ---")
+    wait(1) 
 
- while running do
- local ok = _G.CastAndReel()
- if not ok then
- task.wait(0.05) 
- end
- end
- currentAutoFishThread = nil 
+    while running do
+        local isSuccessful = ResetAndCast()
+        
+        if not isSuccessful then
+             -- Safety wait saat Server menolak Charge/Cast
+             wait(FAIL_COOLDOWN)
+        end
+    end
+    currentAutoFishThread = nil 
+    print("--- AUTO FISHING STOPPED ---")
 end
 
 function _G.PerformAutoSell()
@@ -187,7 +218,7 @@ end
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 local Window = Rayfield:CreateWindow({
-Name = "Fish It Instant | Beta",
+Name = "Fish It Instant | v1.2",
 LoadingTitle = "Fish It Instant Script",
 LoadingSubtitle = "by Rafaczx",
 ConfigurationSaving = { Enabled = true, FolderName = "FishItInstant", FileName = "FishItConfig" },
@@ -223,7 +254,8 @@ TabFish:CreateToggle({
  if toggled then
  -- HIDUPKAN SCRIPT
  running = true
- currentAutoFishThread = task.spawn(_G.AutoFishLoop)
+ -- Menggunakan logika AutoFishLoop yang baru
+ currentAutoFishThread = task.spawn(_G.AutoFishLoop) 
  Rayfield:Notify({ Title = "Instant Fishing", Content = "Memancing otomatis diaktifkan! Delay: " .. string.format("%.2f", BiteDelay) .. "s", Duration = 3 })
  else
  -- MATIKAN SCRIPT
