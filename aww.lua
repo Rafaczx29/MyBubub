@@ -5,7 +5,7 @@
 -- 🔥 VARIABEL PENTING (DIKONTROL OLEH RAYFIELD SLIDER/TOGGLE) 🔥
 -- Mengganti variabel global lama dengan konfigurasi fast fish yang baru
 local ToolSlot = 1
-local BiteDelay = 1.1 -- Default baru: 1.1 detik
+local BiteDelay = 1.0 -- Default baru: 1.1 detik
 local CastingX = -0.5718746185302734
 local CastingY = 1.0
 
@@ -230,8 +230,8 @@ end
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 local Window = Rayfield:CreateWindow({
-Name = "Fish It Instant | Beta",
-LoadingTitle = "Fish It Instant Script",
+Name = "Fish It Instant | v1.2",
+LoadingTitle = "Fish It Script",
 LoadingSubtitle = "by Rafaczx",
 ConfigurationSaving = { Enabled = true, FolderName = "FishItInstant", FileName = "FishItConfig" },
 Discord = { Enabled = false, Invite = "", RememberJoins = true },
