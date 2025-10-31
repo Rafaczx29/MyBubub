@@ -76,9 +76,20 @@ end)
 
 task.spawn(AutoReconnect)
 
-local RodIdle = ReplicatedStorage:WaitForChild("Modules"):WaitForChild("Animations"):WaitForChild("FishingRodReelIdle")
-local RodReel = ReplicatedStorage:WaitForChild("Modules"):WaitForChild("Animations"):WaitForChild("EasyFishReelStart")
-local RodShake = ReplicatedStorage:WaitForChild("Modules"):WaitForChild("Animations"):WaitForChild("CastFromFullChargePosition1Hand")
+local Animations = ReplicatedStorage:WaitForChild("Modules"):WaitForChild("Animations")
+
+local RodIdle = Animations:FindFirstChild("FishingRodReelIdle") 
+    or Animations:FindFirstChildWhichIsA("Animation")
+
+local RodReel = Animations:FindFirstChild("EasyFishReelStart") 
+    or Animations:FindFirstChildWhichIsA("Animation")
+
+local RodShake = Animations:FindFirstChild("CastFromFullChargePosition1Hand") 
+    or Animations:FindFirstChildWhichIsA("Animation")
+
+if not (RodIdle and RodReel and RodShake) then
+    warn("⚠️ Animasi pancing tidak lengkap — lanjut tanpa animasi.")
+end
 
 local character = Players.LocalPlayer.Character or Players.LocalPlayer.CharacterAdded:Wait()
 local humanoid = character:WaitForChild("Humanoid")
