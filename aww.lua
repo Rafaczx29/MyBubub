@@ -19,10 +19,6 @@ local autoSellRunning = false  -- Status ON/OFF AutoSell
 local autoSellThread = nil     -- Thread untuk AutoSell
 local SellInterval = 5         -- Default 5 Menit
 
--- Variabel dan Status Anti-AFK BARU
-local antiAFKRunning = false
-local antiAFKThread = nil
-
 -- =============================================================
 -- LOGIKA TELEPORT MURNI (Untuk Diuji Coba)
 -- =============================================================
@@ -78,7 +74,7 @@ function TeleportToLocation(locationName)
     
     if not destinationVector then return end
 
-    local character = LocalPlayer.Character
+    local character = Players.LocalPlayer.Character
     local HRP = character and character:FindFirstChild("HumanoidRootPart")
 
     if HRP then
@@ -96,7 +92,7 @@ function TeleportToLocation(locationName)
     return false
 end
 
--- 🔥 LOGIKA ANTI-AFK BARU (DITAMBAHKAN) 🔥
+-- Fungsi inti Anti-AFK
 function ToggleAntiAFK(value)
     antiAFKRunning = value
     if value then
@@ -105,18 +101,19 @@ function ToggleAntiAFK(value)
                 while antiAFKRunning do
                     local char = LocalPlayer.Character
                     if char and char:FindFirstChild("Humanoid") then
-                        -- Menggerakkan Humanoid ke arah yang sangat kecil
+                        -- Menggerakkan Humanoid ke arah yang sangat kecil (0.001)
+                        -- Gerakan minimal ini mencegah kick karena AFK
                         local humanoid = char.Humanoid
                         humanoid:Move(Vector3.new(0.001, 0, 0))
                     end
                     
-                    -- Tunggu 15 detik untuk menghindari deteksi afk
+                    -- Tunggu 15 detik sebelum gerakan berikutnya
                     task.wait(15) 
                 end
-                antiAFKThread = nil -- Reset thread
+                antiAFKThread = nil -- Reset thread setelah loop berhenti
             end)
         end
-        print("Anti-AFK Aktif: Gerakan minimal dimulai.")
+        print("Anti-AFK Aktif.")
     else
         if antiAFKThread and task.cancel then
             task.cancel(antiAFKThread)
@@ -125,7 +122,6 @@ function ToggleAntiAFK(value)
         print("Anti-AFK Nonaktif.")
     end
 end
--- 🔥 AKHIR LOGIKA ANTI-AFK BARU 🔥
 
 -- ========== SERVICE & REMOTE SETUP ==========
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -266,8 +262,8 @@ end
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 local Window = Rayfield:CreateWindow({
-Name = "Fish It Instant | Beta",
-LoadingTitle = "Fish It Instant Script",
+Name = "Fish It Script | v1.3",
+LoadingTitle = "Fish It Exploit",
 LoadingSubtitle = "by Rafaczx",
 ConfigurationSaving = { Enabled = true, FolderName = "FishItInstant", FileName = "FishItConfig" },
 Discord = { Enabled = false, Invite = "", RememberJoins = true },
@@ -276,20 +272,6 @@ KeySettings = { Title = "Sirius Key System", Subtitle = "Key System", Note = "Jo
 })
 
 local TabFish = Window:CreateTab("Fishing Menu", 4483362458) 
-
--- 🔥 INTEGRASI TOGGLE ANTI-AFK BARU 🔥
-local AFKSection = TabFish:CreateSection("Anti-AFK System")
-
-AFKSection:CreateToggle({
-	Name = "Anti-AFK",
-	Content = "Prevent automatic disconnection (Active by default)",
-	CurrentValue = false, -- Default OFF
-	Callback = function(Value)
-		-- Memanggil fungsi ToggleAntiAFK yang sudah kita definisikan
-		ToggleAntiAFK(Value) 
-	end,
-})
--- 🔥 AKHIR INTEGRASI TOGGLE ANTI-AFK BARU 🔥
 
 -- 🎣 SLIDER DELAY MEMANCING
 TabFish:CreateSlider({
@@ -328,6 +310,15 @@ TabFish:CreateToggle({
  end,
 })
 
+-- ANTI AFK. 
+TabFish:CreateToggle({
+	Name = "Anti-AFK",
+	CurrentValue = false, -- Default OFF
+	Callback = function(Value)
+		-- Memanggil fungsi global yang sudah didefinisikan
+		ToggleAntiAFK(Value) 
+	end,
+})
 
 local TabSell = Window:CreateTab("Sell Menu", 4483362458) 
 
@@ -374,7 +365,7 @@ local Dropdown = Tab:CreateDropdown({
    Name = "Pilih Lokasi Teleport",
    Options = TeleportLocations,
    -- 🔥 FIX KRITIS: CurrentOption HARUS BERUPA TABEL 🔥
-   CurrentOption = {CurrentTeleportLocation}, -- Menggunakan CurrentTeleportLocation yang sudah diset di awal
+   CurrentOption = {TeleportLocations[1]}, 
    Callback = function(choices)
        -- Rayfield mengembalikan tabel, kita ambil string pertama
        CurrentTeleportLocation = choices[1]
@@ -411,7 +402,7 @@ local boats = {
 }
 
 for _, boat in ipairs(boats) do
-    BoatsSection:CreateButton({ -- FIX: Menggunakan BoatsSection
+    ShopTab:CreateButton({
         Name = "Buy " .. boat.name,
         Callback = function()
             local RFPurchaseBoat = ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net["RF/PurchaseBoat"]
@@ -428,7 +419,7 @@ end
 
 local GearsSection = ShopTab:CreateSection("Buy Gears")
 
-GearsSection:CreateButton({ -- FIX: Menggunakan GearsSection
+ShopTab:CreateButton({
     Name = "Buy Fishing Radar",
     Callback = function()
         local RFPurchaseGear = ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net["RF/PurchaseGear"]
@@ -442,7 +433,7 @@ GearsSection:CreateButton({ -- FIX: Menggunakan GearsSection
     end,
 })
 
-GearsSection:CreateButton({ -- FIX: Menggunakan GearsSection
+ShopTab:CreateButton({
     Name = "Buy Diving Gear",
     Callback = function()
         local RFPurchaseGear = ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net["RF/PurchaseGear"]
@@ -461,7 +452,7 @@ local WeatherSection = ShopTab:CreateSection("Buy Weather")
 local weathers = {"Cloudy", "Snow", "Storm", "Radiant", "SharkHunt", "Wind"}
 
 for _, weather in ipairs(weathers) do
-    WeatherSection:CreateButton({ -- FIX: Menggunakan WeatherSection
+    ShopTab:CreateButton({
         Name = "Buy " .. weather,
         Callback = function()
             local RFPurchaseWeatherEvent = ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net["RF/PurchaseWeatherEvent"]
@@ -491,7 +482,7 @@ local rods = {
 }
 
 for _, rod in ipairs(rods) do
-    RodsSection:CreateButton({ -- FIX: Menggunakan RodsSection
+    ShopTab:CreateButton({
         Name = "Buy " .. rod.name,
         Callback = function()
             local RFPurchaseFishingRod = ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net["RF/PurchaseFishingRod"]
