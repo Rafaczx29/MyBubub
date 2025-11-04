@@ -20,6 +20,61 @@ local autoSellThread = nil     -- Thread untuk AutoSell
 local SellInterval = 5         -- Default 5 Menit
 
 -- =============================================================
+-- SECTION 1: GLOBAL SETUP & FUNGSI ANTI-AFK (Diletakkan di Atas)
+-- =============================================================
+
+local Players = game:GetService("Players")
+local VirtualUser = game:GetService("VirtualUser")
+local LocalPlayer = Players.LocalPlayer
+
+local AntiAFKEnabled = true  -- Status awal (kita set ke TRUE agar auto-aktif di awal)
+local AFKConnection = nil    -- Variabel untuk koneksi event
+local function NotifySuccess(title, content) 
+    -- Ganti dengan fungsi notifikasi Rayfield milikmu (jika ada)
+    print("[SUCCESS] " .. title .. ": " .. content)
+end
+
+-- Fungsi utama untuk Mengaktifkan/Menonaktifkan Anti-AFK
+local function ToggleAntiAFK(Value)
+    if AntiAFKEnabled == Value then
+        return -- Hindari aktivasi ulang
+    end
+
+    AntiAFKEnabled = Value
+
+    if AntiAFKEnabled then
+        
+        if AFKConnection then
+            AFKConnection:Disconnect()
+        end
+        
+        -- Hubungkan ke event Idled (ketika pemain tidak bergerak)
+        AFKConnection = LocalPlayer.Idled:Connect(function()
+            -- Menggunakan pcall untuk menghindari error
+            pcall(function()
+                -- Mengirimkan input Button2Down/Up (klik kanan)
+                VirtualUser:Button2Down(Vector2.new(0, 0), workspace.CurrentCamera.CFrame)
+                task.wait(1)
+                VirtualUser:Button2Up(Vector2.new(0, 0), workspace.CurrentCamera.CFrame)
+            end)
+        end)
+
+        NotifySuccess("Anti-AFK Activated", "You will now avoid being kicked.")
+
+    else -- Menonaktifkan
+        if AFKConnection then
+            AFKConnection:Disconnect()
+            AFKConnection = nil
+        end
+
+        NotifySuccess("Anti-AFK Deactivated", "You can now go idle again.")
+    end
+end
+
+-- Panggil ToggleAntiAFK(true) di akhir bagian Global agar fitur LANGSUNG AKTIF
+ToggleAntiAFK(true)
+
+-- =============================================================
 -- LOGIKA TELEPORT MURNI (Untuk Diuji Coba)
 -- =============================================================
 
@@ -230,7 +285,7 @@ end
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 local Window = Rayfield:CreateWindow({
-Name = "Fish It Instant | v1.2",
+Name = "Fish It Instant | v1.3",
 LoadingTitle = "Fish It Script",
 LoadingSubtitle = "by Rafaczx",
 ConfigurationSaving = { Enabled = true, FolderName = "FishItInstant", FileName = "FishItConfig" },
@@ -240,6 +295,18 @@ KeySettings = { Title = "Sirius Key System", Subtitle = "Key System", Note = "Jo
 })
 
 local TabFish = Window:CreateTab("Fishing Menu", 4483362458) 
+
+local AFKSection = TabFish:CreateSection("Anti-AFK System")
+
+AFKSection:CreateToggle({
+	Name = "Anti-AFK",
+	Content = "Prevent automatic disconnection (Active by default)",
+	CurrentValue = true, 
+	Callback = function(Value)
+        --Fuck. 
+		ToggleAntiAFK(Value) 
+	end,
+})
 
 -- 🎣 SLIDER DELAY MEMANCING
 TabFish:CreateSlider({
