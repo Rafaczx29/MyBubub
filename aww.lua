@@ -285,7 +285,7 @@ end
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 local Window = Rayfield:CreateWindow({
-Name = "Fish It Instant | v1.2",
+Name = "Fish It Instant | v1.3",
 LoadingTitle = "Fish It Script",
 LoadingSubtitle = "by Rafaczx",
 ConfigurationSaving = { Enabled = true, FolderName = "FishItInstant", FileName = "FishItConfig" },
@@ -295,6 +295,19 @@ KeySettings = { Title = "Sirius Key System", Subtitle = "Key System", Note = "Jo
 })
 
 local TabFish = Window:CreateTab("Fishing Menu", 4483362458) 
+
+-- 🔥 FIX 1: DEFINISIKAN AFKSection di dalam TabFish 🔥
+local AFKSection = TabFish:CreateSection("Anti-AFK System")
+
+AFKSection:CreateToggle({
+	Name = "Anti-AFK",
+	Content = "Prevent automatic disconnection (Active by default)",
+	CurrentValue = true, 
+	Callback = function(Value)
+        -- Ini sudah benar: memanggil fungsi ToggleAntiAFK global
+		ToggleAntiAFK(Value) 
+	end,
+})
 
 -- 🎣 SLIDER DELAY MEMANCING
 TabFish:CreateSlider({
@@ -331,16 +344,6 @@ TabFish:CreateToggle({
  Rayfield:Notify({ Title = "Instant Fishing", Content = "Memancing otomatis dinonaktifkan.", Duration = 3 })
  end
  end,
-})
-
-AFKSection:CreateToggle({
-	Name = "Anti-AFK",
-	Content = "Prevent automatic disconnection (Active by default)",
-	CurrentValue = true, 
-	Callback = function(Value)
-        --Fuck. 
-		ToggleAntiAFK(Value) 
-	end,
 })
 
 local TabSell = Window:CreateTab("Sell Menu", 4483362458) 
