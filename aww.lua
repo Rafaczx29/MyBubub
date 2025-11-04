@@ -280,8 +280,9 @@ end
 
 
 -- =============================================================
--- UI RAYFIELD & INTEGRASI TOGGLE
+-- UI RAYFIELD & INTEGRASI TOGGLE (KODE YANG SUDAH DIPERBAIKI)
 -- =============================================================
+
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 local Window = Rayfield:CreateWindow({
@@ -296,7 +297,7 @@ KeySettings = { Title = "Sirius Key System", Subtitle = "Key System", Note = "Jo
 
 local TabFish = Window:CreateTab("Fishing Menu", 4483362458) 
 
--- 🔥 FIX 1: DEFINISIKAN AFKSection di dalam TabFish 🔥
+-- 🔥 FIX KRITIS: DEFINISI AFK SECTION 🔥
 local AFKSection = TabFish:CreateSection("Anti-AFK System")
 
 AFKSection:CreateToggle({
@@ -304,7 +305,7 @@ AFKSection:CreateToggle({
 	Content = "Prevent automatic disconnection (Active by default)",
 	CurrentValue = true, 
 	Callback = function(Value)
-        -- Ini sudah benar: memanggil fungsi ToggleAntiAFK global
+		-- Memanggil fungsi ToggleAntiAFK global
 		ToggleAntiAFK(Value) 
 	end,
 })
@@ -334,7 +335,6 @@ TabFish:CreateToggle({
  if toggled then
  -- HIDUPKAN SCRIPT
  running = true
- -- Menggunakan logika AutoFishLoop yang baru
  currentAutoFishThread = task.spawn(_G.AutoFishLoop) 
  Rayfield:Notify({ Title = "Instant Fishing", Content = "Memancing otomatis diaktifkan! Delay: " .. string.format("%.2f", BiteDelay) .. "s", Duration = 3 })
  else
@@ -390,10 +390,8 @@ local Tab = Window:CreateTab("Teleport Menu", 4483362458)
 local Dropdown = Tab:CreateDropdown({
    Name = "Pilih Lokasi Teleport",
    Options = TeleportLocations,
-   -- 🔥 FIX KRITIS: CurrentOption HARUS BERUPA TABEL 🔥
    CurrentOption = {TeleportLocations[1]}, 
    Callback = function(choices)
-       -- Rayfield mengembalikan tabel, kita ambil string pertama
        CurrentTeleportLocation = choices[1]
        Rayfield:Notify({ Title = "Tujuan Diatur", Content = "Siap Teleport ke: " .. CurrentTeleportLocation, Duration = 2 })
    end,
@@ -428,7 +426,7 @@ local boats = {
 }
 
 for _, boat in ipairs(boats) do
-    ShopTab:CreateButton({
+    BoatsSection:CreateButton({ -- FIX: Gunakan BoatsSection yang didefinisikan
         Name = "Buy " .. boat.name,
         Callback = function()
             local RFPurchaseBoat = ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net["RF/PurchaseBoat"]
@@ -445,7 +443,7 @@ end
 
 local GearsSection = ShopTab:CreateSection("Buy Gears")
 
-ShopTab:CreateButton({
+GearsSection:CreateButton({ -- FIX: Gunakan GearsSection yang didefinisikan
     Name = "Buy Fishing Radar",
     Callback = function()
         local RFPurchaseGear = ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net["RF/PurchaseGear"]
@@ -459,7 +457,7 @@ ShopTab:CreateButton({
     end,
 })
 
-ShopTab:CreateButton({
+GearsSection:CreateButton({ -- FIX: Gunakan GearsSection yang didefinisikan
     Name = "Buy Diving Gear",
     Callback = function()
         local RFPurchaseGear = ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net["RF/PurchaseGear"]
@@ -478,7 +476,7 @@ local WeatherSection = ShopTab:CreateSection("Buy Weather")
 local weathers = {"Cloudy", "Snow", "Storm", "Radiant", "SharkHunt", "Wind"}
 
 for _, weather in ipairs(weathers) do
-    ShopTab:CreateButton({
+    WeatherSection:CreateButton({ -- FIX: Gunakan WeatherSection yang didefinisikan
         Name = "Buy " .. weather,
         Callback = function()
             local RFPurchaseWeatherEvent = ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net["RF/PurchaseWeatherEvent"]
@@ -508,7 +506,7 @@ local rods = {
 }
 
 for _, rod in ipairs(rods) do
-    ShopTab:CreateButton({
+    RodsSection:CreateButton({ -- FIX: Gunakan RodsSection yang didefinisikan
         Name = "Buy " .. rod.name,
         Callback = function()
             local RFPurchaseFishingRod = ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net["RF/PurchaseFishingRod"]
