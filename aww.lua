@@ -5,7 +5,7 @@
 -- 🔥 VARIABEL PENTING (DIKONTROL OLEH RAYFIELD SLIDER/TOGGLE) 🔥
 -- Mengganti variabel global lama dengan konfigurasi fast fish yang baru
 local ToolSlot = 1
-local BiteDelay = 1.0 -- Default baru: 1.1 detik
+local BiteDelay = 1.1 -- Default baru: 1.1 detik
 local CastingX = -0.5718746185302734
 local CastingY = 1.0
 
@@ -19,60 +19,9 @@ local autoSellRunning = false  -- Status ON/OFF AutoSell
 local autoSellThread = nil     -- Thread untuk AutoSell
 local SellInterval = 5         -- Default 5 Menit
 
--- =============================================================
--- SECTION 1: GLOBAL SETUP & FUNGSI ANTI-AFK (Diletakkan di Atas)
--- =============================================================
-
-local Players = game:GetService("Players")
-local VirtualUser = game:GetService("VirtualUser")
-local LocalPlayer = Players.LocalPlayer
-
-local AntiAFKEnabled = true  -- Status awal (kita set ke TRUE agar auto-aktif di awal)
-local AFKConnection = nil    -- Variabel untuk koneksi event
-local function NotifySuccess(title, content) 
-    -- Ganti dengan fungsi notifikasi Rayfield milikmu (jika ada)
-    print("[SUCCESS] " .. title .. ": " .. content)
-end
-
--- Fungsi utama untuk Mengaktifkan/Menonaktifkan Anti-AFK
-local function ToggleAntiAFK(Value)
-    if AntiAFKEnabled == Value then
-        return -- Hindari aktivasi ulang
-    end
-
-    AntiAFKEnabled = Value
-
-    if AntiAFKEnabled then
-        
-        if AFKConnection then
-            AFKConnection:Disconnect()
-        end
-        
-        -- Hubungkan ke event Idled (ketika pemain tidak bergerak)
-        AFKConnection = LocalPlayer.Idled:Connect(function()
-            -- Menggunakan pcall untuk menghindari error
-            pcall(function()
-                -- Mengirimkan input Button2Down/Up (klik kanan)
-                VirtualUser:Button2Down(Vector2.new(0, 0), workspace.CurrentCamera.CFrame)
-                task.wait(1)
-                VirtualUser:Button2Up(Vector2.new(0, 0), workspace.CurrentCamera.CFrame)
-            end)
-        end)
-
-        NotifySuccess("Anti-AFK Activated", "You will now avoid being kicked.")
-
-    else -- Menonaktifkan
-        if AFKConnection then
-            AFKConnection:Disconnect()
-            AFKConnection = nil
-        end
-
-        NotifySuccess("Anti-AFK Deactivated", "You can now go idle again.")
-    end
-end
-
--- Panggil ToggleAntiAFK(true) di akhir bagian Global agar fitur LANGSUNG AKTIF
-ToggleAntiAFK(true)
+-- Variabel dan Status Anti-AFK BARU
+local antiAFKRunning = false
+local antiAFKThread = nil
 
 -- =============================================================
 -- LOGIKA TELEPORT MURNI (Untuk Diuji Coba)
@@ -122,13 +71,14 @@ local CurrentTeleportLocation = TeleportLocations[1]
 -- =============================================================
 
 local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
 
 function TeleportToLocation(locationName)
     local destinationVector = TeleportData[locationName]
     
     if not destinationVector then return end
 
-    local character = Players.LocalPlayer.Character
+    local character = LocalPlayer.Character
     local HRP = character and character:FindFirstChild("HumanoidRootPart")
 
     if HRP then
@@ -145,6 +95,37 @@ function TeleportToLocation(locationName)
     end
     return false
 end
+
+-- 🔥 LOGIKA ANTI-AFK BARU (DITAMBAHKAN) 🔥
+function ToggleAntiAFK(value)
+    antiAFKRunning = value
+    if value then
+        if not antiAFKThread then
+            antiAFKThread = task.spawn(function()
+                while antiAFKRunning do
+                    local char = LocalPlayer.Character
+                    if char and char:FindFirstChild("Humanoid") then
+                        -- Menggerakkan Humanoid ke arah yang sangat kecil
+                        local humanoid = char.Humanoid
+                        humanoid:Move(Vector3.new(0.001, 0, 0))
+                    end
+                    
+                    -- Tunggu 15 detik untuk menghindari deteksi afk
+                    task.wait(15) 
+                end
+                antiAFKThread = nil -- Reset thread
+            end)
+        end
+        print("Anti-AFK Aktif: Gerakan minimal dimulai.")
+    else
+        if antiAFKThread and task.cancel then
+            task.cancel(antiAFKThread)
+            antiAFKThread = nil
+        end
+        print("Anti-AFK Nonaktif.")
+    end
+end
+-- 🔥 AKHIR LOGIKA ANTI-AFK BARU 🔥
 
 -- ========== SERVICE & REMOTE SETUP ==========
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -280,14 +261,13 @@ end
 
 
 -- =============================================================
--- UI RAYFIELD & INTEGRASI TOGGLE (KODE YANG SUDAH DIPERBAIKI)
+-- UI RAYFIELD & INTEGRASI TOGGLE
 -- =============================================================
-
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 local Window = Rayfield:CreateWindow({
-Name = "Fish It Instant | v1.3",
-LoadingTitle = "Fish It Script",
+Name = "Fish It Instant | Beta",
+LoadingTitle = "Fish It Instant Script",
 LoadingSubtitle = "by Rafaczx",
 ConfigurationSaving = { Enabled = true, FolderName = "FishItInstant", FileName = "FishItConfig" },
 Discord = { Enabled = false, Invite = "", RememberJoins = true },
@@ -297,18 +277,19 @@ KeySettings = { Title = "Sirius Key System", Subtitle = "Key System", Note = "Jo
 
 local TabFish = Window:CreateTab("Fishing Menu", 4483362458) 
 
--- 🔥 FIX KRITIS: DEFINISI AFK SECTION 🔥
+-- 🔥 INTEGRASI TOGGLE ANTI-AFK BARU 🔥
 local AFKSection = TabFish:CreateSection("Anti-AFK System")
 
 AFKSection:CreateToggle({
 	Name = "Anti-AFK",
 	Content = "Prevent automatic disconnection (Active by default)",
-	CurrentValue = true, 
+	CurrentValue = false, -- Default OFF
 	Callback = function(Value)
-		-- Memanggil fungsi ToggleAntiAFK global
+		-- Memanggil fungsi ToggleAntiAFK yang sudah kita definisikan
 		ToggleAntiAFK(Value) 
 	end,
 })
+-- 🔥 AKHIR INTEGRASI TOGGLE ANTI-AFK BARU 🔥
 
 -- 🎣 SLIDER DELAY MEMANCING
 TabFish:CreateSlider({
@@ -335,6 +316,7 @@ TabFish:CreateToggle({
  if toggled then
  -- HIDUPKAN SCRIPT
  running = true
+ -- Menggunakan logika AutoFishLoop yang baru
  currentAutoFishThread = task.spawn(_G.AutoFishLoop) 
  Rayfield:Notify({ Title = "Instant Fishing", Content = "Memancing otomatis diaktifkan! Delay: " .. string.format("%.2f", BiteDelay) .. "s", Duration = 3 })
  else
@@ -345,6 +327,7 @@ TabFish:CreateToggle({
  end
  end,
 })
+
 
 local TabSell = Window:CreateTab("Sell Menu", 4483362458) 
 
@@ -390,8 +373,10 @@ local Tab = Window:CreateTab("Teleport Menu", 4483362458)
 local Dropdown = Tab:CreateDropdown({
    Name = "Pilih Lokasi Teleport",
    Options = TeleportLocations,
-   CurrentOption = {TeleportLocations[1]}, 
+   -- 🔥 FIX KRITIS: CurrentOption HARUS BERUPA TABEL 🔥
+   CurrentOption = {CurrentTeleportLocation}, -- Menggunakan CurrentTeleportLocation yang sudah diset di awal
    Callback = function(choices)
+       -- Rayfield mengembalikan tabel, kita ambil string pertama
        CurrentTeleportLocation = choices[1]
        Rayfield:Notify({ Title = "Tujuan Diatur", Content = "Siap Teleport ke: " .. CurrentTeleportLocation, Duration = 2 })
    end,
@@ -426,7 +411,7 @@ local boats = {
 }
 
 for _, boat in ipairs(boats) do
-    BoatsSection:CreateButton({ -- FIX: Gunakan BoatsSection yang didefinisikan
+    BoatsSection:CreateButton({ -- FIX: Menggunakan BoatsSection
         Name = "Buy " .. boat.name,
         Callback = function()
             local RFPurchaseBoat = ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net["RF/PurchaseBoat"]
@@ -443,7 +428,7 @@ end
 
 local GearsSection = ShopTab:CreateSection("Buy Gears")
 
-GearsSection:CreateButton({ -- FIX: Gunakan GearsSection yang didefinisikan
+GearsSection:CreateButton({ -- FIX: Menggunakan GearsSection
     Name = "Buy Fishing Radar",
     Callback = function()
         local RFPurchaseGear = ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net["RF/PurchaseGear"]
@@ -457,7 +442,7 @@ GearsSection:CreateButton({ -- FIX: Gunakan GearsSection yang didefinisikan
     end,
 })
 
-GearsSection:CreateButton({ -- FIX: Gunakan GearsSection yang didefinisikan
+GearsSection:CreateButton({ -- FIX: Menggunakan GearsSection
     Name = "Buy Diving Gear",
     Callback = function()
         local RFPurchaseGear = ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net["RF/PurchaseGear"]
@@ -476,7 +461,7 @@ local WeatherSection = ShopTab:CreateSection("Buy Weather")
 local weathers = {"Cloudy", "Snow", "Storm", "Radiant", "SharkHunt", "Wind"}
 
 for _, weather in ipairs(weathers) do
-    WeatherSection:CreateButton({ -- FIX: Gunakan WeatherSection yang didefinisikan
+    WeatherSection:CreateButton({ -- FIX: Menggunakan WeatherSection
         Name = "Buy " .. weather,
         Callback = function()
             local RFPurchaseWeatherEvent = ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net["RF/PurchaseWeatherEvent"]
@@ -506,7 +491,7 @@ local rods = {
 }
 
 for _, rod in ipairs(rods) do
-    RodsSection:CreateButton({ -- FIX: Gunakan RodsSection yang didefinisikan
+    RodsSection:CreateButton({ -- FIX: Menggunakan RodsSection
         Name = "Buy " .. rod.name,
         Callback = function()
             local RFPurchaseFishingRod = ReplicatedStorage.Packages._Index["sleitnick_net@0.2.0"].net["RF/PurchaseFishingRod"]
