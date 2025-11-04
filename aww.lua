@@ -285,7 +285,7 @@ end
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 local Window = Rayfield:CreateWindow({
-Name = "Fish It Instant | v1.3",
+Name = "Fish It Instant | v1.2",
 LoadingTitle = "Fish It Script",
 LoadingSubtitle = "by Rafaczx",
 ConfigurationSaving = { Enabled = true, FolderName = "FishItInstant", FileName = "FishItConfig" },
@@ -295,18 +295,6 @@ KeySettings = { Title = "Sirius Key System", Subtitle = "Key System", Note = "Jo
 })
 
 local TabFish = Window:CreateTab("Fishing Menu", 4483362458) 
-
-local AFKSection = TabFish:CreateSection("Anti-AFK System")
-
-AFKSection:CreateToggle({
-	Name = "Anti-AFK",
-	Content = "Prevent automatic disconnection (Active by default)",
-	CurrentValue = true, 
-	Callback = function(Value)
-        --Fuck. 
-		ToggleAntiAFK(Value) 
-	end,
-})
 
 -- 🎣 SLIDER DELAY MEMANCING
 TabFish:CreateSlider({
@@ -345,6 +333,15 @@ TabFish:CreateToggle({
  end,
 })
 
+AFKSection:CreateToggle({
+	Name = "Anti-AFK",
+	Content = "Prevent automatic disconnection (Active by default)",
+	CurrentValue = true, 
+	Callback = function(Value)
+        --Fuck. 
+		ToggleAntiAFK(Value) 
+	end,
+})
 
 local TabSell = Window:CreateTab("Sell Menu", 4483362458) 
 
