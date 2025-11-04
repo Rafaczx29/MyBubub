@@ -92,28 +92,47 @@ function TeleportToLocation(locationName)
     return false
 end
 
--- Fungsi inti Anti-AFK
+local UserInputService = game:GetService("UserInputService")
+local antiAFKRunning = false
+local antiAFKThread = nil
+
+-- Fungsi inti Anti-AFK yang dimodifikasi
 function ToggleAntiAFK(value)
     antiAFKRunning = value
+    
     if value then
         if not antiAFKThread then
             antiAFKThread = task.spawn(function()
                 while antiAFKRunning do
-                    local char = LocalPlayer.Character
-                    if char and char:FindFirstChild("Humanoid") then
-                        -- Menggerakkan Humanoid ke arah yang sangat kecil (0.001)
-                        -- Gerakan minimal ini mencegah kick karena AFK
-                        local humanoid = char.Humanoid
-                        humanoid:Move(Vector3.new(0.001, 0, 0))
-                    end
                     
-                    -- Tunggu 15 detik sebelum gerakan berikutnya
-                    task.wait(15) 
+                    -- 1. Tentukan posisi tengah layar (aman dan tidak mengganggu UI)
+                    local viewportSize = UserInputService.ViewportSize
+                    local x = viewportSize.X / 2 
+                    local y = viewportSize.Y / 2
+                    local position = Vector2.new(x, y)
+                    
+                    -- 2. Buat InputObject untuk sentuhan
+                    local inputObject = Instance.new("InputObject")
+                    inputObject.UserInputType = Enum.UserInputType.Touch
+                    inputObject.Position = position
+                    
+                    -- 3. Simulasikan Sentuhan (TEKAN)
+                    -- Note: Kita menggunakan SimulateInput, bukan SimulateKeyPress
+                    UserInputService:SimulateInput(inputObject)
+                    
+                    task.wait(0.05)
+                    
+                    -- 4. Simulasikan Sentuhan (LEPAS)
+                    inputObject.UserInputState = Enum.UserInputState.End
+                    UserInputService:SimulateInput(inputObject)
+                    
+                    -- Menunggu 17 menit (1020 detik)
+                    task.wait(17 * 60) 
                 end
-                antiAFKThread = nil -- Reset thread setelah loop berhenti
+                antiAFKThread = nil 
             end)
         end
-        print("Anti-AFK Aktif.")
+        print("Anti-AFK Aktif: Simulasi sentuhan layar (Mobile) setiap 17 menit.")
     else
         if antiAFKThread and task.cancel then
             task.cancel(antiAFKThread)
@@ -262,7 +281,7 @@ end
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 local Window = Rayfield:CreateWindow({
-Name = "Fish It Script | v1.3",
+Name = "Fish It Script | v1.5",
 LoadingTitle = "Fish It Exploit",
 LoadingSubtitle = "by Rafaczx",
 ConfigurationSaving = { Enabled = true, FolderName = "FishItInstant", FileName = "FishItConfig" },
