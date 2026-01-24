@@ -1,9 +1,9 @@
 local Rayfield = loadstring(game:HttpGet("https://sirius.menu/rayfield"))()
 
 local Window = Rayfield:CreateWindow({
-    Name = "lll HUB | Hatch Speed",
+    Name = "Rafaczx HUB | Hatch Speed",
     LoadingTitle = "loading",
-    LoadingSubtitle = "by Thanetnat",
+    LoadingSubtitle = "by Rafaczx",
     ConfigurationSaving = {
         Enabled = false
     },
