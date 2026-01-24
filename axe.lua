@@ -15,7 +15,7 @@ local Section = Tab:CreateSection("Egg Settings")
 
 local HatchSlider = Tab:CreateSlider({
     Name = "Hatch Speed",
-    Range = {1, 7}, -- Dikunci maksimal 7x
+    Range = {1, 15}, -- Dikunci maksimal 7x
     Increment = 1,
     Suffix = "x",
     CurrentValue = 1,
